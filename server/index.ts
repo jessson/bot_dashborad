@@ -59,11 +59,12 @@ app.use(authMiddleware);
 
 // 登录接口
 app.post('/api/login', async (req, res) => {
+  const expiresIn = process.env.JWT_EXPIRES_IN || '4h';
   const { username, password } = req.body;
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOneBy({ username });
   if (user && await bcrypt.compare(password, user.password)) {
-    const token = jwt.sign({ username, type: user.type }, JWT_SECRET, { expiresIn: '4h' });
+    const token = jwt.sign({ username, type: user.type }, JWT_SECRET, { expiresIn: expiresIn as any });
     res.json({ token, type: user.type });
   } else {
     res.status(401).json({ error: '用户名或密码错误' });
