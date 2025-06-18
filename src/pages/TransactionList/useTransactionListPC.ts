@@ -193,16 +193,8 @@ export function useTransactionListPC() {
         });
 
         // 监听标签收益更新
-        socket.on('tagProfitUpdate', (tagProfit: TagProfitInfo) => {
-            setTagProfits(prev => {
-                const idx = prev.findIndex(t => t.tag === tagProfit.tag && t.chain === tagProfit.chain);
-                if (idx !== -1) {
-                    const arr = [...prev];
-                    arr[idx] = tagProfit;
-                    return arr;
-                }
-                return [...prev, tagProfit];
-            });
+        socket.on('tagProfitUpdate', (tagProfit: TagProfitInfo[]) => {
+            setTagProfits(tagProfit);
         });
 
         // 监听合并后的收益推送

@@ -344,12 +344,12 @@ const TransactionListMobile: React.FC = () => {
         width={280}
       >
         <List
-          dataSource={tagProfits}
+          dataSource={tagProfits.filter(item => item.chain === currentChain)}
           renderItem={item => (
             <List.Item>
               <Space>
                 <Text>{item.tag}</Text>
-                <Tag color="green">${item.total_profit}</Tag>
+                <Tag color="green">${Number(item.total_profit).toFixed(2)}</Tag>
               </Space>
             </List.Item>
           )}

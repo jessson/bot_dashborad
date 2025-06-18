@@ -457,7 +457,7 @@ const TransactionList: React.FC = () => {
               {/* Tag Profits */}
               <Card title="收益标签" size="small" bodyStyle={{ height: '37vh', overflow: 'auto', padding: '8px' }}>
                 <List
-                  dataSource={tagProfits}
+                  dataSource={tagProfits.filter(item => item.chain === currentChain)}
                   renderItem={item => (
                     <List.Item style={{ padding: '4px 0' }}>
                       <Space size={4}>

@@ -11,7 +11,7 @@ import { User } from './entity/User';
 import bcrypt from 'bcryptjs';
 import { Request, Response, NextFunction } from 'express';
 import { startCleanupTask } from './tasks/cleanup';
-import { getProfitForTrades, loadProfitStats, ProfitStats } from './utils/profit';
+import { getProfitForTrades, loadProfitStats } from './utils/profit';
 import {
   CHAINS,
   topInfoMap,
@@ -126,10 +126,13 @@ AppDataSource.initialize().then(async () => {
     }
     if (Array.isArray(t.tags)) {
       t.tags.forEach((tag: string) => {
-        tagProfitCache.get(chain)!.set(tag, (tagProfitCache.get(chain)!.get(tag) || 0) + (t.income || 0));
+        if (tag.length > 0) {
+          tagProfitCache.get(chain)!.set(tag, (tagProfitCache.get(chain)!.get(tag) || 0) + (t.income || 0));
+        }
       });
     }
   }
+  console.log('tagProfitCache', tagProfitCache);
   console.log('profitCache', profitCache);  
   // await getProfitForTrades("bsc", tradeRepo);
   // 启动定时清理任务
@@ -231,6 +234,8 @@ AppDataSource.initialize().then(async () => {
     }
     tradeArr.forEach((t: any) => {
       if (!t || typeof t !== 'object') return;
+      console.log('newTrade', t.hash);
+
       const tradeForFrontend = {
         ...t,
         tags: Array.isArray(t.tags) ? t.tags : [],        
@@ -246,7 +251,6 @@ AppDataSource.initialize().then(async () => {
       addTradeToCache(t);
     });
     emitTradeEvents();
-
     res.json({ ok: true });
   });
 
