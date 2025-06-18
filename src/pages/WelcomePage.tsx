@@ -70,17 +70,8 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onLoginClick, isMobile
       console.log('WebSocket disconnected:', reason);
     });
 
-    socket.on('welcomeUpdate', (info: WelcomeInfo) => {
-      setChains(prev => {
-        const idx = prev.findIndex(c => c.chain === info.chain);
-        if (idx !== -1) {
-          const arr = [...prev];
-          arr[idx] = info;
-          return arr;
-        } else {
-          return [...prev, info];
-        }
-      });
+    socket.on('welcomeUpdate', (infos: WelcomeInfo[]) => {
+      setChains(infos);
     });
 
     return () => { socket.close(); };
