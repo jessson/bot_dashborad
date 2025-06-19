@@ -5,7 +5,7 @@ import { Profit } from '../entity/Profit';
 import { subWeeks, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { CHAINS, profitCache, tagProfitCache } from '../utils/cache';
 import { Between } from 'typeorm';
-import { initProfitCache } from 'server/utils/profit';
+import { initProfitCache } from '../utils/profit';
 
 
 

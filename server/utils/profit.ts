@@ -22,20 +22,9 @@ export interface ProfitStats {
 
 export async function initProfitCache(profitRepo: Repository<Profit>, tradeRepo: Repository<TradeInfo>) {
   for (const chain of CHAINS) {
-    const stats = await loadProfitStats(chain, profitRepo);
+    const stats = await loadProfitStats(chain, profitRepo, tradeRepo);
     console.log('loadProfitStats', chain);
     profitCache.set(chain, stats);
-    const todayProfit = profitCache.get(chain)!.today;
-    const thisWeekProfit = profitCache.get(chain)!.thisWeek;
-    if (todayProfit.txCount == thisWeekProfit.txCount) {
-      console.log('getProfitForTrades', chain);
-      const stats = await getProfitForTrades(chain, tradeRepo);
-      const profitStat = profitCache.get(chain)!
-      profitStat.today = stats.today;
-      profitStat.yesterday = stats.yesterday;
-      profitStat.thisWeek = stats.thisWeek;
-      profitStat.thisMonth = stats.thisMonth;
-    }
   }
 }
 
@@ -100,7 +89,7 @@ export async function getProfitForTrades(chain: string, tradeRepository: Reposit
   };
 }
 
-export const loadProfitStats = async (chain: string, profitRepo: Repository<Profit>): Promise<ProfitStats> => {
+export const loadProfitStats = async (chain: string, profitRepo: Repository<Profit>, tradeRepo: Repository<TradeInfo>): Promise<ProfitStats> => {
   const now = new Date();
   const todayStart = startOfDay(now);
   const yesterdayStart = startOfDay(subDays(now, 1));
@@ -156,6 +145,27 @@ export const loadProfitStats = async (chain: string, profitRepo: Repository<Prof
       created_at: Between(lastMonthStart, monthStart)
     }
   });
+
+  if (thisWeek.length < 7) {
+    console.log('getProfitForTrades', chain, thisWeek.length);
+    const stats = await getProfitForTrades(chain, tradeRepo);
+    return {
+      today: stats.today,
+      yesterday: stats.yesterday,
+      thisWeek: stats.thisWeek,
+      lastWeek: {
+        gross: 0,
+        income: 0,
+        txCount: 0
+      },
+      thisMonth: stats.thisMonth,
+      lastMonth: {
+        gross: 0,
+        income: 0,
+        txCount: 0
+      }
+    };
+  }
 
   // 计算统计数据
   const calculateStats = (profits: Profit[]) => {
