@@ -5,6 +5,7 @@ import { Profit } from '../entity/Profit';
 import { subWeeks, subMonths, startOfDay, endOfDay } from 'date-fns';
 import { CHAINS, profitCache, tagProfitCache } from '../utils/cache';
 import { Between } from 'typeorm';
+import { initProfitCache } from 'server/utils/profit';
 
 
 
@@ -37,6 +38,8 @@ export const startCleanupTask = async () => {
         .execute();
       
       tagProfitCache.clear();
+      // 重新加载profitCache
+      await initProfitCache(profitRepository, tradeRepository);
       console.log(`[${now.toISOString()}] Cleaned up trades older than ${twoWeeksAgo.toISOString()} and profits older than ${twoMonthsAgo.toISOString()}`);
     } catch (error) {
       console.error('Error cleaning up:', error);

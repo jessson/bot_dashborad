@@ -2,6 +2,7 @@ import { Profit } from '../entity/Profit';
 import { startOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { Between, Repository } from 'typeorm';
 import { TradeInfo } from '../entity/TradeInfo';
+import { CHAINS, profitCache } from './cache';
 
 interface ProfitInfo {
   gross: number;
@@ -16,6 +17,26 @@ export interface ProfitStats {
   lastWeek: ProfitInfo;
   thisMonth: ProfitInfo;
   lastMonth: ProfitInfo;
+}
+
+
+export async function initProfitCache(profitRepo: Repository<Profit>, tradeRepo: Repository<TradeInfo>) {
+  for (const chain of CHAINS) {
+    const stats = await loadProfitStats(chain, profitRepo);
+    console.log('loadProfitStats', chain);
+    profitCache.set(chain, stats);
+    const todayProfit = profitCache.get(chain)!.today;
+    const thisWeekProfit = profitCache.get(chain)!.thisWeek;
+    if (todayProfit.txCount == thisWeekProfit.txCount) {
+      console.log('getProfitForTrades', chain);
+      const stats = await getProfitForTrades(chain, tradeRepo);
+      const profitStat = profitCache.get(chain)!
+      profitStat.today = stats.today;
+      profitStat.yesterday = stats.yesterday;
+      profitStat.thisWeek = stats.thisWeek;
+      profitStat.thisMonth = stats.thisMonth;
+    }
+  }
 }
 
 export async function getProfitForTrades(chain: string, tradeRepository: Repository<TradeInfo>): Promise<{

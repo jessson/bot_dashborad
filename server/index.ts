@@ -11,7 +11,7 @@ import { User } from './entity/User';
 import bcrypt from 'bcryptjs';
 import { Request, Response, NextFunction } from 'express';
 import { startCleanupTask } from './tasks/cleanup';
-import { getProfitForTrades, loadProfitStats } from './utils/profit';
+import { getProfitForTrades, initProfitCache, loadProfitStats } from './utils/profit';
 import {
   CHAINS,
   topInfoMap,
@@ -99,20 +99,7 @@ AppDataSource.initialize().then(async () => {
   const profitRepo = AppDataSource.getRepository(Profit);
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  for (const chain of CHAINS) {
-    const stats = await loadProfitStats(chain, profitRepo);
-    profitCache.set(chain, stats);
-    const todayProfit = profitCache.get(chain)!.today;
-    const thisWeekProfit = profitCache.get(chain)!.thisWeek;
-    if (todayProfit.txCount == thisWeekProfit.txCount) {
-      const stats = await getProfitForTrades(chain, tradeRepo);
-      const profitStat = profitCache.get(chain)!
-      profitStat.today = stats.today;
-      profitStat.yesterday = stats.yesterday;
-      profitStat.thisWeek = stats.thisWeek;
-      profitStat.thisMonth = stats.thisMonth;
-    }
-  }
+  await initProfitCache(profitRepo, tradeRepo);
   // 初始化 tagProfitCache
   const todayTrades = await tradeRepo.find({ where: { created_at: MoreThanOrEqual(today) } });
   for (const chain of CHAINS) {
