@@ -152,7 +152,11 @@ AppDataSource.initialize().then(async () => {
     todayProft.gross += t.gross || 0;
     todayProft.txCount += 1;
 
-    const tagCache = tagProfitCache.get(chain)!;
+    let tagCache = tagProfitCache.get(chain);
+    if (!tagCache) {
+      tagCache = new Map();
+      tagProfitCache.set(chain, tagCache);
+    }
     t.tags.forEach((tag: string) => {
       tagCache.set(tag, (tagCache.get(tag) || 0) + (t.income || 0));
     });
