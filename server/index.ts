@@ -77,10 +77,33 @@ app.get('/api/login', (req, res) => {
 
 // 添加 WebSocket 连接处理
 io.on('connection', (socket) => {
-  // console.log('Client connected:', socket.id);
+  console.log('Client connected:', socket.id);
+  
+  // 从连接参数中获取 token
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  let isAuthenticated = false;
+  let userInfo = null;
+
+  // 验证 token
+  if (token) {
+    try {
+      userInfo = jwt.verify(token, JWT_SECRET);
+      isAuthenticated = true;
+      console.log('Authenticated socket connection:', socket.id, userInfo);
+    } catch (error) {
+      console.log('Invalid token for socket:', socket.id);
+      isAuthenticated = false;
+    }
+  } else {
+    console.log('Unauthenticated socket connection:', socket.id);
+  }
+
+  // 将认证信息存储到 socket 对象上
+  (socket as any).isAuthenticated = isAuthenticated;
+  (socket as any).userInfo = userInfo;
 
   socket.on('disconnect', (reason) => {
-    // console.log('Client disconnected:', socket.id, reason);
+    console.log('Client disconnected:', socket.id, reason);
   });
 
   socket.on('error', (error) => {
@@ -88,7 +111,7 @@ io.on('connection', (socket) => {
   });
 
   // 发送初始数据
-  socket.emit('connected', { message: 'Connected to server' });
+  socket.emit('connected', { message: 'Connected to server', authenticated: isAuthenticated });
 });
 
 
@@ -125,6 +148,19 @@ AppDataSource.initialize().then(async () => {
   // 启动定时清理任务
   await startCleanupTask();
   console.log('initialized done!');
+
+  // 根据认证状态发送事件的辅助函数
+  function emitToAuthenticated(event: string, data: any) {
+    io.sockets.sockets.forEach((socket) => {
+      if ((socket as any).isAuthenticated) {
+        socket.emit(event, data);
+      }
+    });
+  }
+
+  function emitToAll(event: string, data: any) {
+    io.emit(event, data);
+  }
 
 
   
@@ -179,9 +215,11 @@ AppDataSource.initialize().then(async () => {
         });
       }
     }
-    io.emit('welcomeUpdate', welcomeArr);
-    io.emit('profitUpdate', profitArr);
-    io.emit('tagProfitUpdate', tagProfitArr);
+    // welcomeUpdate 发送给所有用户（包括未登录）
+    emitToAll('welcomeUpdate', welcomeArr);
+    // profitUpdate 和 tagProfitUpdate 只发送给已登录用户
+    emitToAuthenticated('profitUpdate', profitArr);
+    emitToAuthenticated('tagProfitUpdate', tagProfitArr);
   }
 
   // 合并后的 profit 查询接口
@@ -234,7 +272,7 @@ AppDataSource.initialize().then(async () => {
       };
       try {
         // console.log('[EMIT] newTrade', tradeForFrontend);
-        io.emit('newTrade', tradeForFrontend);
+        emitToAuthenticated('newTrade', tradeForFrontend);
       } catch (error) {
         console.error('Failed to emit newTrade:', error);
       }
@@ -250,7 +288,7 @@ AppDataSource.initialize().then(async () => {
     const w = { ...req.body, id: ++warningCache.id, create_at: new Date().toISOString(), delete: false };
     warningCache.warningBuffer.push(w);
     if (warningCache.warningBuffer.length > 1000) warningCache.warningBuffer.splice(0, warningCache.warningBuffer.length - 1000);
-    io.emit('newWarning', w);
+    emitToAuthenticated('newWarning', w);
     res.json({ success: true });
   });
 
@@ -276,7 +314,7 @@ AppDataSource.initialize().then(async () => {
     topInfoMap.set(info.chain, info);
     try {
       // console.log('[EMIT] topUpdate');
-      io.emit('topUpdate', info);
+      emitToAuthenticated('topUpdate', info);
     } catch (error) {
       console.error('Failed to emit topUpdate:', error);
     }

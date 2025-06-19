@@ -140,11 +140,15 @@ export function useTransactionListPC() {
         const isDev = process.env.NODE_ENV === 'development';
         const wsHost = isDev ? 'localhost:3000' : window.location.hostname;
         const protocol = isDev ? 'ws' : 'wss';
+        const token = localStorage.getItem('token');
         const socket = io(`${protocol}://${wsHost}`, {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         transports: ['websocket', 'polling'],
+        auth: {
+            token: token
+        },
         query: {
             _t: Date.now()
         }

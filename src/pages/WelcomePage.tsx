@@ -53,6 +53,7 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onLoginClick, isMobile
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       transports: ['websocket', 'polling'],
+      // 不传递 token，保持未登录状态
       query: {
         _t: Date.now()
       }
